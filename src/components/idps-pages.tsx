@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { ArrowDownToLine, CheckCircle2, CircleAlert, Database, Filter, Gauge, RefreshCw, Search, Shield, ShieldAlert, Sparkles, Trash2, WandSparkles } from "lucide-react";
+import { ArrowDownToLine, CheckCircle2, CircleAlert, Database, Filter, Gauge, RefreshCw, Search, Shield, ShieldAlert, Sparkles, Trash2, WandSparkles, AreaChart as AreaIcon, BarChart3 } from "lucide-react";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIdps, type EventStatus, type Severity, type TrafficKind, type TrafficRecord } from "@/lib/idps-context";
@@ -25,10 +26,201 @@ function MetricCard({ label, value, note, icon, tone = "accent" }: { label: stri
   return <div className="pop-in rounded-3xl border border-black/5 bg-surface-elevated p-5 shadow-sm"><div className="flex items-center justify-between"><span className="text-xs font-semibold text-ink/50">{label}</span><span className={cn("grid size-8 place-items-center rounded-xl font-display font-bold", iconTone)}>{icon}</span></div><p className="mt-2 font-display text-3xl font-bold">{value}</p><p className="mt-1 text-xs font-semibold text-ink/45">{note}</p></div>;
 }
 
+function CustomTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="rounded-2xl border border-black/5 bg-surface-elevated/95 p-3.5 shadow-xl backdrop-blur-md text-xs space-y-2">
+        <p className="font-display font-bold text-sm text-ink border-b border-black/5 pb-1">
+          Time: {label}
+        </p>
+        <div className="space-y-1.5">
+          {payload.map((entry: any) => (
+            <div key={entry.name} className="flex items-center justify-between gap-4 font-medium">
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                <span className="text-ink/70">{entry.name}:</span>
+              </span>
+              <span className="font-mono font-bold text-ink">{entry.value.toLocaleString()} reqs</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
 function TrafficChart({ traffic }: { traffic: TrafficRecord[] }) {
-  const buckets = [62, 74, 48, 88, 69, 95, 57, 81, 44, 72, 66, 85];
-  const suspicious = traffic.filter((event) => event.status === "Suspicious").length;
-  return <Panel className="lg:col-span-2"><SectionHeading title="Traffic Overview" description="Last 24 hours · simulated" action={<div className="flex gap-3 text-[10px] font-semibold"><span className="flex items-center gap-1"><i className="size-2 rounded-full bg-mint" />Normal</span><span className="flex items-center gap-1"><i className="size-2 rounded-full bg-sunny" />Suspicious</span><span className="flex items-center gap-1"><i className="size-2 rounded-full bg-brand" />Blocked</span></div>} /><div className="flex h-40 items-end gap-2">{buckets.map((height, index) => <div key={index} className="flex flex-1 flex-col justify-end"><div className={cn("rounded-t-xl", index === 5 ? "bg-brand/85" : index === 3 || index === 8 ? "bg-sunny/90" : "bg-mint/80")} style={{ height: `${height}%` }} /><span className="mt-1.5 text-center text-[10px] text-ink/40">{index === 5 ? suspicious + 5 : 50 + index * 4}</span></div>)}</div></Panel>;
+  const [chartMode, setChartMode] = useState<"area" | "bar">("area");
+  const [visibleSeries, setVisibleSeries] = useState({
+    normal: true,
+    suspicious: true,
+    blocked: true,
+  });
+
+  const chartData = useMemo(() => {
+    const timeBuckets = [
+      "00:00", "02:00", "04:00", "06:00", "08:00", "10:00",
+      "12:00", "14:00", "16:00", "18:00", "20:00", "22:00"
+    ];
+    
+    const baseNormal = [420, 380, 290, 310, 540, 780, 890, 820, 750, 680, 590, 480];
+    const baseSuspicious = [12, 8, 15, 6, 28, 45, 62, 58, 40, 32, 22, 18];
+    const baseBlocked = [3, 1, 4, 2, 8, 12, 18, 15, 10, 7, 5, 4];
+
+    let normalAdd = 0;
+    let suspiciousAdd = 0;
+    let blockedAdd = 0;
+
+    traffic.forEach((event) => {
+      if (event.eventStatus === "BLOCKED" || event.preventionAction === "IP Blocked") {
+        blockedAdd += 1;
+      } else if (event.status === "Suspicious" || event.severity !== "NORMAL") {
+        suspiciousAdd += 1;
+      } else {
+        normalAdd += 1;
+      }
+    });
+
+    return timeBuckets.map((time, idx) => {
+      const isPeakSlot = idx >= 6 && idx <= 8;
+      const slotNormal = (baseNormal[idx] ?? 400) + (isPeakSlot ? normalAdd * 8 : normalAdd * 2);
+      const slotSuspicious = (baseSuspicious[idx] ?? 20) + (isPeakSlot ? suspiciousAdd * 6 : suspiciousAdd);
+      const slotBlocked = (baseBlocked[idx] ?? 5) + (isPeakSlot ? blockedAdd * 5 : blockedAdd);
+      const total = slotNormal + slotSuspicious + slotBlocked;
+
+      return {
+        time,
+        Normal: slotNormal,
+        Suspicious: slotSuspicious,
+        Blocked: slotBlocked,
+        Total: total,
+      };
+    });
+  }, [traffic]);
+
+  const toggleSeries = (key: "normal" | "suspicious" | "blocked") => {
+    setVisibleSeries((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  return (
+    <Panel className="lg:col-span-2 flex flex-col justify-between">
+      <SectionHeading
+        title="Traffic Overview"
+        description="Last 24 hours · simulated network flow"
+        action={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-2xl border border-black/5 bg-surface p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => toggleSeries("normal")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
+                  visibleSeries.normal ? "bg-mint-soft text-mint shadow-xs" : "text-ink/40 line-through opacity-50"
+                )}
+              >
+                <span className="size-2 rounded-full bg-mint" />
+                Normal
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleSeries("suspicious")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
+                  visibleSeries.suspicious ? "bg-sunny-soft text-sunny shadow-xs" : "text-ink/40 line-through opacity-50"
+                )}
+              >
+                <span className="size-2 rounded-full bg-sunny" />
+                Suspicious
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleSeries("blocked")}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer",
+                  visibleSeries.blocked ? "bg-brand-soft text-brand shadow-xs" : "text-ink/40 line-through opacity-50"
+                )}
+              >
+                <span className="size-2 rounded-full bg-brand" />
+                Blocked
+              </button>
+            </div>
+
+            <div className="flex items-center rounded-2xl border border-black/5 bg-surface p-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setChartMode("area")}
+                className={cn(
+                  "flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-medium transition-all cursor-pointer",
+                  chartMode === "area" ? "bg-surface-elevated text-ink font-bold shadow-xs" : "text-ink/50 hover:text-ink"
+                )}
+                title="Area Chart View"
+              >
+                <AreaIcon size={13} /> Area
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartMode("bar")}
+                className={cn(
+                  "flex items-center gap-1 rounded-xl px-2 py-1 text-[11px] font-medium transition-all cursor-pointer",
+                  chartMode === "bar" ? "bg-surface-elevated text-ink font-bold shadow-xs" : "text-ink/50 hover:text-ink"
+                )}
+                title="Bar Chart View"
+              >
+                <BarChart3 size={13} /> Bar
+              </button>
+            </div>
+          </div>
+        }
+      />
+
+      <div className="h-56 w-full pt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartMode === "area" ? (
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="normalGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="suspiciousGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.5} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
+                </linearGradient>
+                <linearGradient id="blockedGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0, 0, 0, 0.06)" />
+              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "rgba(0, 0, 0, 0.4)" }} dy={8} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "rgba(0, 0, 0, 0.4)" }} />
+              <Tooltip content={<CustomTooltip />} />
+              {visibleSeries.normal && (
+                <Area type="monotone" dataKey="Normal" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#normalGrad)" />
+              )}
+              {visibleSeries.suspicious && (
+                <Area type="monotone" dataKey="Suspicious" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#suspiciousGrad)" />
+              )}
+              {visibleSeries.blocked && (
+                <Area type="monotone" dataKey="Blocked" stroke="#f43f5e" strokeWidth={2.5} fillOpacity={1} fill="url(#blockedGrad)" />
+              )}
+            </AreaChart>
+          ) : (
+            <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0, 0, 0, 0.06)" />
+              <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "rgba(0, 0, 0, 0.4)" }} dy={8} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "rgba(0, 0, 0, 0.4)" }} />
+              <Tooltip content={<CustomTooltip />} />
+              {visibleSeries.normal && <Bar dataKey="Normal" fill="#10b981" radius={[4, 4, 0, 0]} />}
+              {visibleSeries.suspicious && <Bar dataKey="Suspicious" fill="#f59e0b" radius={[4, 4, 0, 0]} />}
+              {visibleSeries.blocked && <Bar dataKey="Blocked" fill="#f43f5e" radius={[4, 4, 0, 0]} />}
+            </BarChart>
+          )}
+        </ResponsiveContainer>
+      </div>
+    </Panel>
+  );
 }
 
 function RecentEvents({ events }: { events: TrafficRecord[] }) {
