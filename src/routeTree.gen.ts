@@ -10,33 +10,79 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DetectionRouteImport } from './routes/detection'
+import { Route as LogsRouteImport } from './routes/logs'
+import { Route as PreventionRouteImport } from './routes/prevention'
+import { Route as TrafficSimulatorRouteImport } from './routes/traffic-simulator'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DetectionRoute = DetectionRouteImport.update({
+  id: '/detection',
+  path: '/detection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogsRoute = LogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreventionRoute = PreventionRouteImport.update({
+  id: '/prevention',
+  path: '/prevention',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrafficSimulatorRoute = TrafficSimulatorRouteImport.update({
+  id: '/traffic-simulator',
+  path: '/traffic-simulator',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/detection': typeof DetectionRoute
+  '/logs': typeof LogsRoute
+  '/prevention': typeof PreventionRoute
+  '/traffic-simulator': typeof TrafficSimulatorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/detection': typeof DetectionRoute
+  '/logs': typeof LogsRoute
+  '/prevention': typeof PreventionRoute
+  '/traffic-simulator': typeof TrafficSimulatorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/detection': typeof DetectionRoute
+  '/logs': typeof LogsRoute
+  '/prevention': typeof PreventionRoute
+  '/traffic-simulator': typeof TrafficSimulatorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/detection' | '/logs' | '/prevention' | '/traffic-simulator'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/detection' | '/logs' | '/prevention' | '/traffic-simulator'
+  id:
+    | '__root__'
+    | '/'
+    | '/detection'
+    | '/logs'
+    | '/prevention'
+    | '/traffic-simulator'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DetectionRoute: typeof DetectionRoute
+  LogsRoute: typeof LogsRoute
+  PreventionRoute: typeof PreventionRoute
+  TrafficSimulatorRoute: typeof TrafficSimulatorRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +94,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/detection': {
+      id: '/detection'
+      path: '/detection'
+      fullPath: '/detection'
+      preLoaderRoute: typeof DetectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logs': {
+      id: '/logs'
+      path: '/logs'
+      fullPath: '/logs'
+      preLoaderRoute: typeof LogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/prevention': {
+      id: '/prevention'
+      path: '/prevention'
+      fullPath: '/prevention'
+      preLoaderRoute: typeof PreventionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/traffic-simulator': {
+      id: '/traffic-simulator'
+      path: '/traffic-simulator'
+      fullPath: '/traffic-simulator'
+      preLoaderRoute: typeof TrafficSimulatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DetectionRoute: DetectionRoute,
+  LogsRoute: LogsRoute,
+  PreventionRoute: PreventionRoute,
+  TrafficSimulatorRoute: TrafficSimulatorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
