@@ -13,6 +13,7 @@ const navigation = [
   { label: "Security Logs", to: "/logs", icon: Table2, dot: "ink" },
 ] as const;
 
+const defaultPageMeta = { eyebrow: "Overview", title: "Security Dashboard", subtitle: "Simulated traffic analysis & prevention at a glance" };
 const pageMeta: Record<string, { eyebrow: string; title: string; subtitle: string }> = {
   "/": { eyebrow: "Overview", title: "Security Dashboard", subtitle: "Simulated traffic analysis & prevention at a glance" },
   "/traffic-simulator": { eyebrow: "Module 1", title: "Network Traffic Simulator", subtitle: "Generate simulated network events for IDPS testing." },
@@ -27,7 +28,7 @@ function Dot({ color }: { color: string }) {
 
 export function IdpsShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const meta = pageMeta[pathname] ?? pageMeta["/"];
+  const meta = pageMeta[pathname] ?? defaultPageMeta;
   const { runDemo, generateTraffic, toast } = useIdps();
 
   return (
@@ -80,5 +81,5 @@ function Brand() {
 function NavItem({ item, pathname, mobile = false }: { item: typeof navigation[number]; pathname: string; mobile?: boolean }) {
   const Icon = item.icon;
   const active = pathname === item.to;
-  return <Link to={item.to as LinkProps["to"]} className={cn("flex shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition-colors", active ? "bg-brand-soft text-brand" : "text-ink/70 hover:bg-surface-elevated hover:text-ink", mobile && "border border-black/5 bg-surface-elevated px-3 text-xs shadow-sm")}><Dot color={item.dot} /><Icon size={16} className="hidden sm:block" /><span>{item.label}</span>{active && <ChevronRight size={14} className="ml-auto hidden sm:block" />}</Link>;
+  return <Link to={item.to} className={cn("flex shrink-0 items-center gap-3 rounded-2xl px-3.5 py-2.5 text-sm font-medium transition-colors", active ? "bg-brand-soft text-brand" : "text-ink/70 hover:bg-surface-elevated hover:text-ink", mobile && "border border-black/5 bg-surface-elevated px-3 text-xs shadow-sm")}><Dot color={item.dot} /><Icon size={16} className="hidden sm:block" /><span>{item.label}</span>{active && <ChevronRight size={14} className="ml-auto hidden sm:block" />}</Link>;
 }

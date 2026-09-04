@@ -94,7 +94,7 @@ export function IdpsProvider({ children }: { children: ReactNode }) {
   }, [showToast]);
 
   const generateTraffic = useCallback((kind: TrafficKind) => {
-    const selected = kind === "random" ? (["normal", "port-scan", "brute-force", "abnormal"] as const)[Math.floor(Math.random() * 4)] : kind;
+    const selected = kind === "random" ? ((["normal", "port-scan", "brute-force", "abnormal"] as const)[Math.floor(Math.random() * 4)] ?? "normal") : kind;
     append([makeRecord(selected, 1)]);
   }, [append]);
 
