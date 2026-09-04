@@ -1,4 +1,4 @@
-import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Activity, BellRing, BookOpenCheck, ChevronRight, Database, LayoutDashboard, Menu, ShieldAlert, ShieldCheck, Table2 } from "lucide-react";
 import { useIdps } from "@/lib/idps-context";
 import { Button } from "@/components/ui/button";
